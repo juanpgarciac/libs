@@ -1,15 +1,13 @@
 <?php
 require_once 'config.php';
 class _mysqli {
-    //put your code here    
-    private $host="localhost"; 
-    //private $port=3306;
-    //private $port="";
-    //private $socket="";
-    private $user="posadave_admin";
-    private $password="nu54P<znjM";
-    private $dbname="posadave_bd";
-    public $conn;
+    private $host="localhost";     
+    //private $port=null;
+    //private $socket=null;
+    private $user=null;
+    private $password=null;
+    private $dbname=null;
+    public $conn=null;
     public $debug=false;
     
     
