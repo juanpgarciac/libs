@@ -1,57 +1,16 @@
 <?php
-function enviarEmail($email,$nombre,$asunto,$text){
-    
-    //---------------------------CONFIGURAR SERVER----------------------------//
-    if(file_exists('res/phpmailer/class.phpmailer.php'))
-        require_once 'res/phpmailer/class.phpmailer.php';
-    else if(file_exists('../res/phpmailer/class.phpmailer.php'))
-        require_once '../res/phpmailer/class.phpmailer.php';
-    $host='server-0116a.dnsprincipal.com';
-    $sender='sender@posadas-venezuela.com.ve';
-    $clave="nu54P<znjM";
-    $hello = "www.posadas-venezuela.com.ve";  
-    $from = 'www.posadas-venezuela.com.ve';
-    $mail = new PHPMailer();                                                                    
-    /* DEBUGGING 
-    $mail->Debugoutput = 'echo';
-    $mail->SMTPDebug  =true;
-    /**/    
-    $mail->IsSMTP();
-    $mail->SMTPAuth = true;
-    $mail->FromName = $from;
-    $mail->SMTPSecure = "ssl";
-    $mail->Hello = $hello;
-    $mail->Host = $host;                    
-    $mail->Port = 465;//25//587//465            
-    $mail->Username = $sender;
-    $mail->Password = $clave;   
-    //------------------------------------------------------------------------//    
-    $mail->SetFrom($sender, $nombre);
-    //$mail->AddReplyTo($sender,$nombre);    
-    $mail->Subject = $asunto;
-    $mail->MsgHTML($text);
-    $mail->AddAddress($email);   //agregar email para enviar      
-    //$mail->AddAddress(''); 
-    if($mail->Send()):    
-        $mail->ClearAddresses();
-        return true;
-    else:
-        return false;
-endif;
 
-}
 function encrypt_decrypt($action, $string) {
     $output = false;
-    $encrypt_method = "AES-256-CBC";
-    $secret_key = 'jpgsolucionestecnologicas key';
-    $secret_iv = 'jpgsolucionestecnologicas iv';
+    $encrypt_method = encrypt_method();
+    $secret_key = encrypt_key();
+    $secret_iv = encrypt_key();
     // hash
     $key = hash('sha256', $secret_key);    
     // iv - encrypt method AES-256-CBC expects 16 bytes - else you will get a warning
     $iv = substr(hash('sha256', $secret_iv), 0, 16);
     if( $action == 'encrypt' || $action == 'e' ) {
         $output = base64_encode(openssl_encrypt($string, $encrypt_method, $key, 0, $iv));
-        //$output = base64_encode($output);
     }else 
         $output = openssl_decrypt(base64_decode($string), $encrypt_method, $key, 0, $iv);
     return $output;

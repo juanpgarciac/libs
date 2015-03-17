@@ -1,6 +1,5 @@
 <?php
 //con repositorio git
-require_once 'config.php';
 class _mysqli {
     private $host="localhost";     
     //private $port=null;
@@ -12,8 +11,7 @@ class _mysqli {
     public $debug=false;
     public function __construct() {
         $this->getconfig();
-        ini_set('mbstring.internal_encoding','UTF-8');
-        date_default_timezone_set('America/Caracas');       
+        $this->debug = DEBUGME||false;
         $this->connect();
     }
     
