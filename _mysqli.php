@@ -1,4 +1,5 @@
 <?php
+//con repositorio git
 require_once 'config.php';
 class _mysqli {
     private $host="localhost";     
@@ -9,11 +10,6 @@ class _mysqli {
     private $dbname=null;
     public $conn=null;
     public $debug=false;
-    
-    
-    
-    
-    
     public function __construct() {
         $this->getconfig();
         ini_set('mbstring.internal_encoding','UTF-8');
