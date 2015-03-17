@@ -3,12 +3,11 @@ set_time_limit(0);
 date_default_timezone_set('America/Caracas');
 ini_set('mbstring.internal_encoding','UTF-8');
 define("SERVERHOST", '/');
-define("ENABLEDEBUG", TRUE);
-define("DEBUGME", TRUE);
+define("DEBUGME", FALSE);
 define("TMPUPLOADS", SERVERHOST.'panelAdmin/tmp_uploads');
 define("SESSIONACTIVE", 'POSADASMARGARITA');
 /**/
-if(ENABLEDEBUG){
+if(DEBUGME){
     ini_set("display_startup_errors", "1");
     ini_set("display_errors", "1");
     error_reporting(E_ALL);

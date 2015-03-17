@@ -12,11 +12,11 @@ function getsession_decrypted(){
     global $email_session;
     global $gestion_session;
     if(isset($_SESSION['idusuario_session'.SESSIONACTIVE])&&$_SESSION['idusuario_session'.SESSIONACTIVE]&&decrypt($_SESSION['idusuario_session'.SESSIONACTIVE])){
-        $idusuario_session = decrypt($_SESSION['idusuario_session'.SESSIONACTIVE])||0;//usuario que ingreso el registro
-        $email_session = decrypt($_SESSION['email_session'.SESSIONACTIVE])||null;
-        $usuario_session = decrypt($_SESSION['usuario_session'.SESSIONACTIVE])||null;
-        $nivel_session = decrypt($_SESSION['nivel_session'.SESSIONACTIVE])||null;
-        $gestion_session = explode(',',decrypt($_SESSION['gestion_session'.SESSIONACTIVE])||'');   
+        $idusuario_session = decrypt($_SESSION['idusuario_session'.SESSIONACTIVE]);//usuario que ingreso el registro
+        $email_session = decrypt($_SESSION['email_session'.SESSIONACTIVE]);
+        $usuario_session = decrypt($_SESSION['usuario_session'.SESSIONACTIVE]);
+        $nivel_session = decrypt($_SESSION['nivel_session'.SESSIONACTIVE]);
+        $gestion_session = explode(',',decrypt($_SESSION['gestion_session'.SESSIONACTIVE]));   
         session_commit();
         return true;
     }
@@ -31,11 +31,11 @@ function getsession_encrypted(){
     global $email_session;
     global $gestion_session;
     if(isset($_SESSION['idusuario_session'.SESSIONACTIVE])&&$_SESSION['idusuario_session'.SESSIONACTIVE]){
-        $idusuario_session = ($_SESSION['idusuario_session'.SESSIONACTIVE])||0;//usuario que ingreso el registro
-        $usuario_session = ($_SESSION['usuario_session'.SESSIONACTIVE])||null;
-        $email_session = ($_SESSION['email_session'.SESSIONACTIVE])||null;
-        $nivel_session = ($_SESSION['nivel_session'.SESSIONACTIVE])||null;
-        $gestion_session = ($_SESSION['gestion_session'.SESSIONACTIVE]||'');   
+        $idusuario_session = ($_SESSION['idusuario_session'.SESSIONACTIVE]);//usuario que ingreso el registro
+        $usuario_session = ($_SESSION['usuario_session'.SESSIONACTIVE]);
+        $email_session = ($_SESSION['email_session'.SESSIONACTIVE]);
+        $nivel_session = ($_SESSION['nivel_session'.SESSIONACTIVE]);
+        $gestion_session = ($_SESSION['gestion_session'.SESSIONACTIVE]);   
         session_commit();
         return true;
     }

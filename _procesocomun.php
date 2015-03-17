@@ -8,7 +8,6 @@ function prepareVar_v2($arr=array(),$index='',$alt=null){
 }
 function prepareInsert(&$valores,&$campos,$arrIgnorar,$arrFechas,$arrEnteros,$avoidcontrol = false){
     global $idusuario_session;
-    $idusuario_session = ($idusuario_session)?decrypt($idusuario_session):0;
     $i = 0;
     $valores = null;
     $campos = null;
@@ -52,8 +51,7 @@ function prepareInsert(&$valores,&$campos,$arrIgnorar,$arrFechas,$arrEnteros,$av
     //echo $campos.'<br>'.$valores;die();
 }
 function prepareUpdate($tabla,$idr,$arrIgnorar,$arrFechas,$arrEnteros,$avoidcontrol = false){
-    global $idusuario_session;    
-    $idusuario_session = ($idusuario_session)?decrypt($idusuario_session):0;
+    global $idusuario_session;
     $i = 0;
     foreach ($_POST as $campo => $valor){        
         if(!in_array ($campo, $arrIgnorar))://=======================ignorar 
@@ -91,7 +89,7 @@ function prepareUpdate($tabla,$idr,$arrIgnorar,$arrFechas,$arrEnteros,$avoidcont
      if(!$avoidcontrol){
         $query .= ",idusuariomodif = $idusuario_session, fmodif = now()";
      }
-    $query .=  "where id = $idr";  
+    $query .=  " where id = $idr";  
     //echo $query; die(); //verificar el query
     return $query;
     
@@ -248,10 +246,6 @@ function saveimg($mysqli,$dirname,$tablaimg,$idr,$idcolumname,$columname = 'imag
     }
     /**/
 }
-/*
- * 
- * 
- */
 function saveimg_v2($config){    
     $mysqli = prepareVar_v2( $config,'mysqli');
     $dirname = prepareVar_v2( $config,'dirname');
@@ -289,12 +283,12 @@ function saveimg_v2($config){
         } 
     }
 }
-function saveimgs($mysqli,$dirname,$tablaimg,$idregistro,$idcolumname,$columname = 'imagen',$postname='imgs',$postdelimgs = 'delimgs',$mascara = false){
+function saveimgs($mysqli,$dirname,$tablaimg,$idr,$idcolumname,$columname = 'imagen',$postname='imgs',$postdelimgs = 'delimgs',$mascara = false){
     $config = array(
           'mysqli'=>$mysqli,
           'dirname' => $dirname,
           'tablaimg' =>$tablaimg,
-          'idr'=>$idregistro,
+          'idr'=>$idr,
           'idcolumname'=>$idcolumname,
           'columname' => $columname,
           'postname' => $postname,
@@ -322,7 +316,7 @@ function saveimgs($mysqli,$dirname,$tablaimg,$idregistro,$idcolumname,$columname
                 $filename = "$dirname/$img"; 
                 if($img && rename("tmp_uploads/$img", $filename)){
                     if($mascara)aplicar_mascara($filename);
-                    $mysqli->insertar($tablaimg,"$idcolumname,$columname", "$idregistro,'$img'",false);   
+                    $mysqli->insertar($tablaimg,"$idcolumname,$columname", "$idr,'$img'",false);   
                 }else{
                     if($returnmsj == 'mensajes' || $returnmsj == 'panelAdmin')
                         echo alertaBoostrap('<p>Hubo un error al intentar subir una imagen!</p>', '-warning');   
@@ -421,7 +415,7 @@ function guardarArchivo($mysqli,$id,$tabla,$campo,$carpeta,$name = 'file',$input
                             $diffh = $img_src_h - $height_ ;
                             $diffw = $img_src_w - $width_;
                             if($diffh < 0 && $diffw < 0 ){
-                                //la imagen es mas peque√±a en ambos lados, por tanto solo se centra horizontal y verticamente
+                                //la imagen es mas pequeÒa en ambos lados, por tanto solo se centra horizontal y verticamente
                                 $dst_image = $img_src;
                             }else if($diffh > $diffw){
                                 //el alto es mas grande que el ancho por tanto el porcentaje se basa en el alto
@@ -502,23 +496,23 @@ function fixArrayOfCheckboxes( $checks ) {
     return $newChecks;
 }
 function limpiarcadena($String){
-    $String = str_replace(array('√°','√†','√¢','√£','¬™','√§'),'a',$String);
-    $String = str_replace(array('√Å','√Ä','√Ç','√É','√Ñ'),'A',$String);
-    $String = str_replace(array('√ç','√å','√é','√è'),'I',$String);
-    $String = str_replace(array('√≠','√¨','√Æ','√Ø'),'i',$String);
-    $String = str_replace(array('√©','√®','√™','√´'),'e',$String);
-    $String = str_replace(array('√â','√à','√ä','√ã'),'E',$String);
-    $String = str_replace(array('√≥','√≤','√¥','√µ','√∂','¬∫'),'o',$String);
-    $String = str_replace(array('√ì','√í','√î','√ï','√ñ'),'O',$String);
-    $String = str_replace(array('√∫','√π','√ª','√º'),'u',$String);
-    $String = str_replace(array('√ö','√ô','√õ','√ú'),'U',$String);
-    $String = str_replace(array('[','^','¬¥','`','¬®','~',']'),"",$String);
-    $String = str_replace('√ß','c',$String);
-    $String = str_replace('√á','C',$String);
-    $String = str_replace('√±','n',$String);
-    $String = str_replace('√ë','N',$String);
-    $String = str_replace('√ù','Y',$String);
-    $String = str_replace('√Ω','y',$String);
+    $String = str_replace(array('·','‡','‚','„','™','‰'),'a',$String);
+    $String = str_replace(array('¡','¿','¬','√','ƒ'),'A',$String);
+    $String = str_replace(array('Õ','Ã','Œ','œ'),'I',$String);
+    $String = str_replace(array('Ì','Ï','Ó','Ô'),'i',$String);
+    $String = str_replace(array('È','Ë','Í','Î'),'e',$String);
+    $String = str_replace(array('…','»',' ','À'),'E',$String);
+    $String = str_replace(array('Û','Ú','Ù','ı','ˆ','∫'),'o',$String);
+    $String = str_replace(array('”','“','‘','’','÷'),'O',$String);
+    $String = str_replace(array('˙','˘','˚','¸'),'u',$String);
+    $String = str_replace(array('⁄','Ÿ','€','‹'),'U',$String);
+    $String = str_replace(array('[','^','¥','`','®','~',']'),"",$String);
+    $String = str_replace('Á','c',$String);
+    $String = str_replace('«','C',$String);
+    $String = str_replace('Ò','n',$String);
+    $String = str_replace('—','N',$String);
+    $String = str_replace('›','Y',$String);
+    $String = str_replace('˝','y',$String);
     return $String;
 }
 function endfunction($mysqli,$accion,$idr,$returnpageAdd,$returnpageList,$returnpageImg = ""){
@@ -572,7 +566,7 @@ function aplicar_mascara($filename,$dirbase = 'img/base.jpg',$dirmascara='img/ma
     $diffh = $img_src_h - $height_ ;
     $diffw = $img_src_w - $width_;
     if($diffh < 0 && $diffw < 0 ){
-        //la imagen es mas peque√±a en ambos lados, por tanto solo se centra horizontal y verticamente
+        //la imagen es mas pequeÒa en ambos lados, por tanto solo se centra horizontal y verticamente
         $dst_image = $img_src;
     }else if($diffh > $diffw){
         //el alto es mas grande que el ancho por tanto el porcentaje se basa en el alto
@@ -595,7 +589,7 @@ function aplicar_mascara($filename,$dirbase = 'img/base.jpg',$dirmascara='img/ma
     imagejpeg($img_base,$filename);
     return $filename;
 }
-function savemultimedia($mysqli,$dirname,$tablafile,$idregistro,$idcolumname,$columname = 'imagen',$postname='img',$postdelimg = 'delimg'){
+function savemultimedia($mysqli,$dirname,$tablafile,$idr,$idcolumname,$columname = 'imagen',$postname='img',$postdelimg = 'delimg'){
     $returnmsj = isset($_POST['returnmsj'])?$_POST['returnmsj']:false;
     //BORRAR
     if(isset($_POST[$postdelimg]) && $_POST[$postdelimg]){
@@ -613,7 +607,7 @@ function savemultimedia($mysqli,$dirname,$tablafile,$idregistro,$idcolumname,$co
             $filename = "$dirname/$img";            
             if($img && rename("tmp_uploads/$img", $filename)){
                 aplicar_mascara($filename);
-                 if(!$mysqli->update($columname,"'$img'",$tablaimg,"where $idcolumname = $idregistro"))
+                 if(!$mysqli->update($columname,"'$img'",$tablaimg,"where $idcolumname = $idr"))
                     echo alertaBoostrap('<p>Hubo un error al intentar subir una imagen!</p>', '-warning');
             }else{
                 if($returnmsj == 'mensajes' || $returnmsj == 'panelAdmin')
@@ -621,4 +615,12 @@ function savemultimedia($mysqli,$dirname,$tablafile,$idregistro,$idcolumname,$co
             }            
         }
     }
+}
+function cleantmp(){
+    $files = glob(TMPUPLOADS.'/*'); // get all file names
+    foreach($files as $file){ // iterate files
+      if(is_file($file))
+        unlink($file); // delete file
+    }
+    echo 'done!';
 }
