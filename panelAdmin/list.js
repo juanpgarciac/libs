@@ -1,7 +1,9 @@
+ var global_languange = document.documentElement.lang;
  var tablaRegistro;
  var parametro;
  var funcion;
-(function($, window, document, undefined) {
+ var dirprocesocomun = '../lib/_procesocomun.php';
+ (function($, window, document, undefined) {
     'use strict';
     tablaRegistro = document.getElementById('tabla').value;    
     parametro = document.getElementById('parametro').value;    
@@ -69,26 +71,26 @@ function seleccionar_visibles(b){
    $("#table-list > tbody > tr ").filter(':visible').find('.check-lote').prop('checked',b);               
 }
 function eliminar_seleccion(){
-    var val = confirm('Â¿Esta seguro que desea eliminar todos los registros seleccionados?');
+    var val = confirm('¿Esta seguro que desea eliminar todos los registros seleccionados?');
     if(val) {
         var s = '';
         $('.check-lote').filter(':checked').each(function( ) {
             s += $(this).val()+',';
         });           
 
-        $.post('procesocomun.php',{funcion:'eliminar_lote',tabla:tablaRegistro,iditems:s}, function(data) {                        
+        $.post(dirprocesocomun,{funcion:'eliminar_lote',tabla:tablaRegistro,iditems:s}, function(data) {                        
             listar();
         });                   
     }
 }
 function condicion_seleccion(condicion){
-    var val = confirm('Â¿Esta seguro que desea cambiar la condicion a '+condicion+' de todos los registros seleccionados?');
+    var val = confirm('¿Esta seguro que desea cambiar la condicion a '+condicion+' de todos los registros seleccionados?');
     if(val) {
         var s = '';
         $('.check-lote').filter(':checked').each(function( ) {
             s += $(this).val()+',';
         });           
-        $.post('../lib/_procesocomun.php',{funcion:'condicion_lote',condicion:condicion,tabla:tablaRegistro,iditems:s}, function(data) {                        
+        $.post(dirprocesocomun,{funcion:'condicion_lote',condicion:condicion,tabla:tablaRegistro,iditems:s}, function(data) {                        
             listar();
         });                   
     }

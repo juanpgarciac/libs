@@ -2,9 +2,10 @@
 set_time_limit(0);
 date_default_timezone_set('America/Caracas');
 ini_set('mbstring.internal_encoding','UTF-8');
-define("SERVERHOST", '/');
+define("SERVERHOST", '/posadas/');
+define("DOCUMENTROOT", $_SERVER['DOCUMENT_ROOT']);
 define("DEBUGME", FALSE);
-define("TMPUPLOADS", SERVERHOST.'panelAdmin/tmp_uploads');
+define("TMPUPLOADS", DOCUMENTROOT.SERVERHOST.'panelAdmin/tmp_uploads');
 define("SESSIONACTIVE", 'POSADASMARGARITA');
 /**/
 if(DEBUGME){
@@ -20,10 +21,10 @@ echo "FILES:";
 print_r($_FILES);
 echo "</pre>";                    
 /**/ 
-include SERVERHOST."lang/_lang.php";
-include SERVERHOST."lib/_config.php";
-include SERVERHOST."lib/_mysqli.php";
-include SERVERHOST."lib/_funciones.php";
-include SERVERHOST."lib/_procesocomun.php";
-include SERVERHOST."lib/_checksession.php";
+include DOCUMENTROOT.SERVERHOST."lang/_lang.php";
+include DOCUMENTROOT.SERVERHOST."lib/_config.php";
+include DOCUMENTROOT.SERVERHOST."lib/_mysqli.php";
+include DOCUMENTROOT.SERVERHOST."lib/_funciones.php";
+include DOCUMENTROOT.SERVERHOST."lib/_procesocomun.php";
+include DOCUMENTROOT.SERVERHOST."lib/_checksession.php";
 

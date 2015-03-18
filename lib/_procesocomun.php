@@ -522,8 +522,7 @@ function endfunction($mysqli,$accion,$idr,$returnpageAdd,$returnpageList,$return
         $returnpageModif =  $returnpageAdd."?idr=".encrypt($idr);
     if($returnpageImg)
         $returnpageImg = '| <a href="'.$returnpageImg."?idr=".$idr.'">Agregar Im&aacute;genes</a>';
-        
-        echo alertaBoostrap('<p><a href="'.$returnpageAdd.'">A&ntilde;adir otro</a> | <a href="'.$returnpageModif.'">Modificar Registro</a> '.$returnpageImg.' | <a href="'.$returnpageList.'">Listar Registros</a></p>','-info');
+        echo alertaBoostrap('<p><a href="'.$returnpageAdd.'">A&ntilde;adir otro</a> | <a href="'.$returnpageModif.'">Modificar Registro</a> '.$returnpageImg.' | <a href="'.$returnpageList.'">Listar Registros</a></p>','-info',true);
     endif;    
 }
 function encriptar_algo(){    

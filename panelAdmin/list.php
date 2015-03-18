@@ -7,16 +7,13 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <title>{ - FEWO | List of <?php echo $titulo; ?> - }</title>
+    <title>{ - <?php echo printo('MSJ_PAGINA_TITULO') ?> | List of <?php echo $titulo; ?> - }</title>
     <!--========================== INCLUDE HEADER =======================-->                           
     <?php include 'head.html'; ?>
     <link rel="stylesheet" href="../res/fancybox/jquery.fancybox.css" type="text/css" media="screen" />
     <link rel="stylesheet" href="//cdn.datatables.net/1.10.5/css/jquery.dataTables.min.css" type="text/css" media="screen"/>
-    <!-- 
-    <link href="../res/tablesorter/css/theme.default.css" rel="stylesheet"><!-- -->
-    <!-- <link href="../res/tablesorter/css/theme.dropbox.css" rel="stylesheet">-->
-    <!--========================== -------------- =======================-->                              
     <style>
+        /***
         .formTableFilter {
           text-align: right;
         }
@@ -26,9 +23,10 @@
         .formTableFilter input {
             width: 100%;
         }
+        /**/
     </style>
 </head>
-<body>
+<body lang="<?php echo $global_language; ?>">
     <input type="hidden" value="<?php echo $tabla;?>" id="tabla" name="tabla" />
     <input type="hidden" value="<?php echo $parametro;?>" id="parametro" name="parametro" />
     <div class="container">
