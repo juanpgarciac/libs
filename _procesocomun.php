@@ -109,6 +109,7 @@ function listar_tabla($columnas,$config){
     echo '<th style="text-align:center;">STATUS</th>'
     . '<th style="text-align:center;">EDIT</th>'
     . '<th style="text-align:center;">-</th></tr></thead>';
+    
     echo '<tbody>';
     while($arr = mysqli_fetch_array($result,MYSQLI_ASSOC)):
         $trclass = '';   
@@ -124,7 +125,7 @@ function listar_tabla($columnas,$config){
         foreach ($columnas as $value) {
             echo '<td class="'.$tdclass.'">'.($arr[$value]).'</td>';     
         }        
-        echo '<td class="'.$tdclass.'">'.$arr['status'].'</td>';
+        echo '<td class="'.$tdclass.'">'.$status.'</td>';
         
         
         

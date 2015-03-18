@@ -11,7 +11,7 @@ class _mysqli {
     public $debug=false;
     public function __construct() {
         $this->getconfig();
-        $this->debug = DEBUGME;
+        if(defined('DEBUGME'))$this->debug = DEBUGME;
         $this->connect();
     }
     

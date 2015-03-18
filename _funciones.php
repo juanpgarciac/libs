@@ -6,8 +6,7 @@ function encrypt_decrypt($action, $string) {
     $secret_key = encrypt_key();
     $secret_iv = encrypt_key();
     // hash
-    $key = hash('sha256', $secret_key);    
-    // iv - encrypt method AES-256-CBC expects 16 bytes - else you will get a warning
+    $key = hash('sha256', $secret_key);// iv - encrypt method AES-256-CBC expects 16 bytes - else you will get a warning
     $iv = substr(hash('sha256', $secret_iv), 0, 16);
     if( $action == 'encrypt' || $action == 'e' ) {
         $output = base64_encode(openssl_encrypt($string, $encrypt_method, $key, 0, $iv));
@@ -101,4 +100,11 @@ function getinput($name,$placeholder="",$type="text",$required='required="requir
     $value = $GLOBALS[$name];    
     echo "<input class=\"$class\" id=\"$name\" name=\"$name\" placeholder=\"$placeholder\" $required type=\"$type\" value=\"$value\" pattern=\"$pattern\"  />";
 }
-
+function addlabel($id,$label,$tags=null){
+    return '<label '.$id.' '.$tags.'>'.$label.'</label>';    
+}
+function addinput($id,$name,$value,$tags=null,$placeholder=null,$type='text',$aftercode=null){
+    
+    //'email','email', $email, 'required="" '.$readonly,'Email address', 'email','<span class="icon-email icon-right"></span>'
+    return '<input id="'.$id.'" name="'.$name.'"  value="'.$value.'"  '.$tags.' placeholder="'.$placeholder.'" type="'.$type.'"  class="form-control ff-rounded" />'.$aftercode;    
+}
