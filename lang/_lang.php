@@ -1,10 +1,10 @@
 <?php 
-$global_language = 'es';
+global $global_language;
 session_start();
 if(!isset($_SESSION['global_language'])||!$_SESSION['global_language']||isset($_GET['lang'])||isset($_GET['rlang'])){
     $_SESSION['global_language'] = isset($_GET['lang'])&&$_GET['lang']?$_GET['lang']:'es';    
-    $global_language = $_SESSION['global_language'];
 }
+$global_language = $_SESSION['global_language'];
 session_commit();
 function userLanguage(){
     $file = 'lang/_lang.js';
