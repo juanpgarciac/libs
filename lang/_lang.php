@@ -1,21 +1,20 @@
 <?php 
 global $global_language;
-session_start();
-if(!isset($_SESSION['global_language'])||!$_SESSION['global_language']||isset($_GET['lang'])||isset($_GET['rlang'])){
-    $_SESSION['global_language'] = isset($_GET['lang'])&&$_GET['lang']?$_GET['lang']:'es';    
-}
-$global_language = $_SESSION['global_language'];
-session_commit();
+if(!isset($_COOKIE['global_language'])||!$_COOKIE['global_language']||isset($_GET['lang'])){
+    $global_language = isset($_GET['lang'])&&$_GET['lang']?$_GET['lang']:GLOBAL_LANGUAGE;
+    setcookie("global_language",$global_language,time()+60*60*24*365,'/');//guardar la cookie por un año?
+}else $global_language = isset($_COOKIE['global_language'])&&$_COOKIE['global_language']?$_COOKIE['global_language']:GLOBAL_LANGUAGE;
 function userLanguage(){
-    $file = DOCUMENTROOT.SERVERHOST.'lang/_lang.js';
+    $file = DOCUMENTROOT.SERVERHOST.'lang/_lang.ini';
     if(!file_exists($file)){
         return false;
     }else return parse_ini_file($file);
 }
-function printo($index){   
+function printo($index){
     global $global_language;
+    $indice = ($index)?mb_strtoupper($index)."_$global_language":"MSJ_NO_INDEX_GIVEN_$global_language";
+    if(strpos($indice,'MSJ_')===false)$indice = "MSJ_$indice";
     $arr = userLanguage();
-    $indice = $index.'_'.$global_language;
     if($arr)return isset($arr[$indice])&&$arr[$indice]?stripslashes($arr[$indice]):$indice;
     else return $indice;
 }

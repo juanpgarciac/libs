@@ -1,5 +1,5 @@
 var phpupload = "upload.php";
-var arrimgs = ['image/jpeg','image/png','image/gif'];
+var arrimgs = ['image/png','image/jpeg','image/jpeg','image/jpeg','image/gif','image/bmp','image/vnd.microsoft.icon','image/tiff','image/tiff','image/svg+xml','image/svg+xml'];
 var arrothers = [];//['application/pdf'];
 function saveFile(input,nombre) { 
     if (input.files && input.files[0]) {

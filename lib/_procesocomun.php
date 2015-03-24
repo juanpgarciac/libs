@@ -8,10 +8,13 @@ function prepareVar_v2($arr=array(),$index='',$alt=null){
 }
 function prepareInsert(&$valores,&$campos,$arrIgnorar,$arrFechas,$arrEnteros,$avoidcontrol = false){
     global $idusuario_session;
+    $idusuario_session = $idusuario_session?$idusuario_session:0;    
     $i = 0;
     $valores = null;
     $campos = null;
-    foreach ($_POST as $campo => $valor){        
+    foreach ($_POST as $campo => $valor){       
+        $valor = ($valor)?addslashes(trim($valor)):null;
+        if(in_array($campo,$arrEnteros)&&!$valor)$valor = 0;
         if($campo === 'funcion' || $campo === 'accion')
             break;  
         if(!in_array ($campo, $arrIgnorar)):
@@ -19,24 +22,14 @@ function prepareInsert(&$valores,&$campos,$arrIgnorar,$arrFechas,$arrEnteros,$av
                 $campos .= ','.$campo;            
                 if(in_array ($campo, $arrFechas))://==============esta en fechas
                      $valores .= ",'".date('Y-m-d',strtotime($valor))."'";  
-                else:                
-                    if(in_array ($campo, $arrEnteros))://========esta en enteros                  
-                        if(!$valor || empty($valor)){$valor = 0;}
-                        $valores .= ",$valor";    
-                    else:                        
-                        $valores .= ",'$valor'";                
-                    endif;                    
+                else:
+                    $valores .= ",'$valor'";
                 endif;
             else://primer valor                    
                 if(in_array ($campo, $arrFechas))://==============esta en fechas
                     $valores = "'".date('Y-m-d',strtotime($valor))."'";  
-                else:                
-                   if(in_array ($campo, $arrEnteros))://========esta en enteros                  
-                       if(!$valor || empty($valor)){$valor = 0;}
-                       $valores = $valor;
-                   else: //es cadena
-                        $valores = "'".trim($valor)."'" ;                    
-                   endif;                    
+                else:
+                    $valores .= "'$valor'";
                 endif;            
                 $campos = $campo;
             endif;                    
@@ -47,13 +40,15 @@ function prepareInsert(&$valores,&$campos,$arrIgnorar,$arrFechas,$arrEnteros,$av
         $campos .= ',idusuariocreador,fcreacion';
         $valores .= ",$idusuario_session,now()";         
     }
-
-    //echo $campos.'<br>'.$valores;die();
+    if(DEBUGME)echo $campos.'<br>'.$valores;;//verificar el query
 }
 function prepareUpdate($tabla,$idr,$arrIgnorar,$arrFechas,$arrEnteros,$avoidcontrol = false){
     global $idusuario_session;
+    $idusuario_session = $idusuario_session?$idusuario_session:0; 
     $i = 0;
-    foreach ($_POST as $campo => $valor){        
+    foreach ($_POST as $campo => $valor){
+        $valor = ($valor)?addslashes(trim($valor)):null;
+        if(in_array($campo,$arrEnteros)&&!$valor)$valor = 0;
         if(!in_array ($campo, $arrIgnorar))://=======================ignorar 
             if($campo === 'funcion' || $campo === 'accion')
                 break;   
@@ -61,25 +56,13 @@ function prepareUpdate($tabla,$idr,$arrIgnorar,$arrFechas,$arrEnteros,$avoidcont
                 if(in_array ($campo, $arrFechas))://==============esta en fechas
                     $query .= ",$campo = '".date('Y-m-d',strtotime($valor))."'"; 
                 else:
-                    if(in_array ($campo, $arrEnteros))://========esta en enteros 
-                        if(!$valor || empty($valor)){$valor = 0;}
-                        $query .= ",$campo = $valor";
-                    else://========esta en cadenas
-                        $valor = str_replace("'",'', $valor);
-                        $query .= ",$campo = '$valor'";
-                    endif;  
+                    $query .= ",$campo = '$valor'";
                 endif;
             else:
                if(in_array ($campo, $arrFechas))://==============esta en fechas
-                        $query = "$campo = '".date('Y-m-d',strtotime($valor))."'"; 
+                    $query = "$campo = '".date('Y-m-d',strtotime($valor))."'"; 
                 else:
-                    if(in_array ($campo, $arrEnteros))://========esta en enteros 
-                        if(!$valor || empty($valor)){$valor = 0;}
-                        $query = "$campo = $valor";
-                    else:                              //========esta en cadenas
-                        $valor = str_replace("'",'', $valor);
-                        $query = "$campo = '$valor'";//==========================set inicial
-                    endif;  
+                    $query = "$campo = '$valor'";
                 endif; 
             endif;
             ++$i;
@@ -90,18 +73,75 @@ function prepareUpdate($tabla,$idr,$arrIgnorar,$arrFechas,$arrEnteros,$avoidcont
         $query .= ",idusuariomodif = $idusuario_session, fmodif = now()";
      }
     $query .=  " where id = $idr";  
-    //echo $query; die(); //verificar el query
+    if(DEBUGME)echo $query;//verificar el query
+    return $query;  
+}
+function prepareInsert_v2($config){
+    $tabla = prepareVar_v2($config, 'tabla');
+    $condicion= prepareVar_v2($config, 'condicion');
+    $accion = prepareVar_v2($config, 'accion');
+    $arrignorar = prepareVar_v2($config,'arrignorar',array());
+    $avoidcontrol = prepareVar_v2($config,'avoidcontrol');
+    $glue = prepareVar_v2($config,'glue',',');    
+    $valores = $campos = array();
+    if($tabla){
+        $mysqli = new _mysqli;
+        $result = mysqli_query($mysqli->conn, "SHOW COLUMNS FROM $tabla;");
+        while ($arr = mysqli_fetch_assoc($result)) {            
+            $tmpcampo = isset($_POST[$arr['Field']])&&$_POST[$arr['Field']]?$arr['Field']:null;
+            if($tmpcampo && !in_array($arr['Field'],$arrignorar)){
+                $tmpvalor = isset($_POST[$arr['Field']])&&$_POST[$arr['Field']]?$_POST[$arr['Field']]:$arr['Default'];
+                if(strpos($arr['Type'],'int')!== false){
+                    $tmpvalor = ($tmpvalor)?$tmpvalor:0;
+                }else if(strpos($arr['Type'],'varchar')!== false || strpos($arr['Type'],'text')!==false){
+                    if (is_array($tmpvalor))//si es un arreglo debo desplegarlo
+                        $tmpvalor = implode ($glue, $tmpvalor);   
+                    $tmpvalor = "'".addslashes(trim($tmpvalor))."'";
+                }else if(strpos($arr['Type'],'date')!==false){
+                    $tmpvalor = "'".date('Ymd',strtotime($tmpvalor))."'";
+                }else if(strpos($arr['Type'],'decimal')!==false){
+                    $tmpvalor = ($tmpvalor)?"'".($tmpvalor)."'":0;
+                }
+                if($accion == 'insert'||$accion == 'guardar'){
+                    array_push($valores, $tmpvalor);    
+                    array_push($campos, $tmpcampo);        
+                }else{
+                    array_push($campos, "$tmpcampo = $tmpvalor"); 
+                }
+            }            
+        }        
+    }
+    $query = null;
+    global $idusuario_session;
+    $idusuario_session = $idusuario_session?$idusuario_session:0; 
+    if($accion == 'insert'||$accion == 'guardar'){        
+        if(!$avoidcontrol)
+            $query = "insert into $tabla(".implode(',', $campos).",idusuariocreador,fcreacion) values(".implode(',', $valores).",$idusuario_session,now())";
+        else 
+            $query = "insert into $tabla(".implode(',', $campos).") value(".implode(',', $valores).")";        
+    }else{//si es update
+       if($condicion){//evitemos una catastrofe
+            if(!$avoidcontrol)
+                $query = "update  $tabla set ".implode(',', $campos).",idusuariomodif = $idusuario_session,fmodif=now() $condicion";
+            else $query = "update  $tabla set ".implode(',', $campos)." $condicion";   
+       }
+    }
     return $query;
-    
 }
 function listar_tabla($columnas,$config){
-    $condicion = $config['condicion'];
-    $tabla =  $config['tabla'];
-    $returnpageAdd = $config['returnpageAdd'];
-    $beforeupdate= $config['beforeupdate'];
+    $campotitulo = prepareVar_v2($config,'campotitulo');
+    $condicion = prepareVar_v2($config,'condicion');
+    $campos = prepareVar_v2($config,'campos','*');
+    $tabla =  prepareVar_v2($config,'tabla');
+    $returnpageAdd = prepareVar_v2($config,'returnpageAdd');
+    $beforeupdate= prepareVar_v2($config,'beforeupdate');
+    $fancyimg = prepareVar_v2($config,'fancyimg');
+    $fancyimgdir = prepareVar_v2($config,'fancyimgdir');
+    $fancyimgtitle = prepareVar_v2($config,'fancyimgtitle');
     $mysqli = new _mysqli();
-    $result = $mysqli->resultN($tabla,$condicion);    
-    echo '<table cellpadding="0" cellspacing="0" border="0" class="table table-striped table-bordered dataTable no-footer" id="table-list">';
+    $result = $mysqli->resultN($tabla,$condicion,$campos);
+    $titulo = 'selected record';
+    echo '<table cellpadding="0" cellspacing="0" border="0" class="table table-striped table-bordered dataTable no-footer" id="table-list" style="font-size:smaller;">';
     echo '<thead><tr>';
     foreach ($columnas as $key => $value) {
         echo '<th style="text-align:center;">'.mb_strtoupper($key).'</th>';
@@ -109,7 +149,6 @@ function listar_tabla($columnas,$config){
     echo '<th style="text-align:center;">STATUS</th>'
     . '<th style="text-align:center;">EDIT</th>'
     . '<th style="text-align:center;">-</th></tr></thead>';
-    
     echo '<tbody>';
     while($arr = mysqli_fetch_array($result,MYSQLI_ASSOC)):
         $trclass = '';   
@@ -123,14 +162,21 @@ function listar_tabla($columnas,$config){
         }
         echo '<tr class="'.$trclass.'">';
         foreach ($columnas as $value) {
-            echo '<td class="'.$tdclass.'">'.($arr[$value]).'</td>';     
+            if($fancyimg == $value)
+                echo '<td class="'.$tdclass.'">'
+                    . '<a href="'.$fancyimgdir.'/'.$arr[$value].'" class="fancybox" title="'.$arr[$fancyimgtitle].'">'
+                    . '<img src="'.$fancyimgdir.'/'.$arr[$value].'"  style="max-width:80px;max-height:80px;"/>'
+                    . '</a>'
+                    . '</td>';     
+            else{
+                echo '<td class="'.$tdclass.'">'.($arr[$value]).'</td>';     
+            } 
+            if($campotitulo == $value)    
+                $titulo = $arr[$value];  
         }        
         echo '<td class="'.$tdclass.'">'.$status.'</td>';
-        
-        
-        
         echo '<td style="text-align:center;width:100px;">
-                '.editbuttons($status, $idencrypted,$returnpageAdd,$beforeupdate).'
+                '.editbuttons($status, $idencrypted,$titulo,$beforeupdate).'
                 '.editbuttons('edit', $idencrypted,$returnpageAdd).'
               </td>';
         echo '<td style=""><input type="checkbox" class="check-lote" value="'.$id.'" /></td>';
@@ -190,8 +236,9 @@ function editbuttons($status,$id,$link,$beforeupdate = ''){
     return $button;
 }
 function cambiarStatus($accion){
-   $id = $_POST['id'];
-   $tabla = $_POST['tabla'];    
+   $id = decrypt($_POST['id']);
+   $tabla = ($_POST['tabla']);    
+   if(!$id || !$tabla)die('Error de DATA POST');
    $status = $accion;
    $beforeupdate = isset($_POST['beforeupdate'])?$_POST['beforeupdate']:'';
    try {
@@ -205,6 +252,67 @@ function cambiarStatus($accion){
    } catch (Exception $exc) {
         exit(alertaBoostrap('Error al intentar cambiar el status el registro: <p>'.$exc->getTraceAsString().'</p>','-danger',false));          
    } 
+}
+function savemultimedia($config){    
+    $mysqli = new _mysqli;
+    
+    $idpadre = prepareVar_v2($config, 'idpadre');
+    $idr = prepareVar_v2($config, 'idr');
+    $dirname = prepareVar_v2($config, 'dirname');
+    $tabla = prepareVar_v2($config, 'tabla');
+    
+    $multimedia_archivo = prepareVar_v2($config,'multimedia_archivo');
+    $multimedia_borrar = prepareVar_v2($config,'multimedia_borrar');
+    $multimedia_titulo = prepareVar_v2($config,'multimedia_titulo');
+    
+    $columa_id      = prepareVar_v2($config, 'columna_id');
+    $columna_nombre = prepareVar_v2($config, 'columna_nombre');
+    $columna_titulo = prepareVar_v2($config, 'columna_titulo');
+    $columna_extension = prepareVar_v2($config, 'columna_extension');
+
+    $mascara = prepareVar_v2( $config,'mascara',false);
+    $limpiar = prepareVar_v2( $config,'limpiar',false);
+    
+    if($multimedia_borrar){
+        if(file_exists("$dirname/$multimedia_borrar"))
+            unlink("$dirname/$multimedia_borrar");
+        $mysqli->executeSQL("update $tabla set $columna_nombre = '' where $columna_nombre = '$multimedia_borrar' ");        
+    }
+    if($multimedia_archivo){
+        $filename = null;
+        $extension = null;
+        if(!file_exists("$dirname/$multimedia_archivo")){
+            $tmpfile =file_exists(TMPUPLOADS."/$multimedia_archivo")?TMPUPLOADS."/$multimedia_archivo":null;
+            if($tmpfile){
+                //si existe en los temporales es un insert 
+                $extension = pathinfo($tmpfile,PATHINFO_EXTENSION);
+                $filename = "$columna_nombre-$idr-".sha1(microtime()).".$extension";
+                $filepath  = "$dirname/$filename";
+                if(rename($tmpfile, $filepath)){ 
+                    if($mascara)aplicar_mascara($filepath);
+                    $columna_extension = $columna_extension?",$columna_extension = '$extension' ":null;
+                    if(!$idpadre){//si no existe un idpadre se trata de una tabla mixta (no puedo insertar solo actualizar)
+                        if(!$mysqli->executeSQL("update $tabla set $columna_nombre = '$filename'$columna_extension where $columa_id = $idr ")){
+                            echo mysqli_error($mysqli->conn);    
+                        }                        
+                    }else{//si existe un idpadre se trara de una tabla especifica para multimedias (inserto)
+                        if(!$mysqli->insertar($tabla,"$columa_id,$columna_nombre", "$idpadre,'$filename'")){
+                            echo mysqli_error($mysqli->conn);    
+                        }
+                    }
+                    $multimedia_archivo = $filename;//debo decirle ahora para actulizar el titulo como se llama la imagen
+                }
+            }
+        }
+        if($columna_titulo){
+            //actualizar columna titulo
+            if(!$mysqli->executeSQL("update $tabla set $columna_titulo = '$multimedia_titulo' where $columna_nombre = '$multimedia_archivo' ")){
+                echo mysqli_error($mysqli->conn);    
+            }    
+        }        
+    }
+    if($limpiar)$mysqli->executeSQL("delete from $tabla where $columna_nombre = '' or $columna_nombre is NULL");
+    
 }
 function saveimg($mysqli,$dirname,$tablaimg,$idr,$idcolumname,$columname = 'imagen',$postname='img',$postdelimg = 'delimg',$mascara = false){    
         $config = array(
@@ -257,7 +365,6 @@ function saveimg_v2($config){
     $postname= prepareVar_v2( $config,'postname','img');
     $postdelimg = prepareVar_v2( $config,'postdelimg','delimg');
     $mascara = prepareVar_v2( $config,'mascara',false);
-    
     if(isset($_POST[$postdelimg]) && $_POST[$postdelimg]){
         $img = $_POST[$postdelimg];
         if(file_exists("$dirname/$img"))
@@ -589,33 +696,6 @@ function aplicar_mascara($filename,$dirbase = 'img/base.jpg',$dirmascara='img/ma
     imagejpeg($img_base,$filename);
     return $filename;
 }
-function savemultimedia($mysqli,$dirname,$tablafile,$idr,$idcolumname,$columname = 'imagen',$postname='img',$postdelimg = 'delimg'){
-    $returnmsj = isset($_POST['returnmsj'])?$_POST['returnmsj']:false;
-    //BORRAR
-    if(isset($_POST[$postdelimg]) && $_POST[$postdelimg]){
-        $img = $_POST[$postdelimg];
-        if(file_exists("$dirname/$img"))
-            unlink("$dirname/$img");
-        mysqli_query($mysqli->conn, "update $tablafile set $columname = '' where $columname = '$img' ");        
-    }
-    /***/
-    
-    //INSERTAR
-    if(isset($_POST[$postname])){
-        $img = $_POST[$postname];
-        if(file_exists("tmp_uploads/$img")){
-            $filename = "$dirname/$img";            
-            if($img && rename("tmp_uploads/$img", $filename)){
-                aplicar_mascara($filename);
-                 if(!$mysqli->update($columname,"'$img'",$tablaimg,"where $idcolumname = $idr"))
-                    echo alertaBoostrap('<p>Hubo un error al intentar subir una imagen!</p>', '-warning');
-            }else{
-                if($returnmsj == 'mensajes' || $returnmsj == 'panelAdmin')
-                    echo alertaBoostrap('<p>Hubo un error al intentar subir una imagen!</p>', '-warning');
-            }            
-        }
-    }
-}
 function cleantmp(){
     $files = glob(TMPUPLOADS.'/*'); // get all file names
     foreach($files as $file){ // iterate files
@@ -623,4 +703,33 @@ function cleantmp(){
         unlink($file); // delete file
     }
     echo 'done!';
+}
+function gettablecolumns($tabla){
+    if($tabla){
+        $mysqli = new _mysqli;
+        $result = mysqli_query($mysqli->conn, "SHOW COLUMNS FROM $tabla;");
+        while ($arr = mysqli_fetch_assoc($result)) {
+            $GLOBALS[$arr['Field']] = null;
+        }        
+    }
+}
+function gettablerow($tabla,$idr,$idcolumn = 'id'){
+    if($idr&&$tabla){
+        $mysqli = new _mysqli;
+        $arr = $mysqli->result1($tabla,"where $idcolumn = $idr");
+        getarrvars($arr);
+    }
+}
+function gettablerow_condicion($tabla,$condicion=null,$campos="*"){
+    if($tabla){
+        $mysqli = new _mysqli;
+        $arr = $mysqli->result1($tabla,$condicion,$campos);
+        getarrvars($arr);
+    }
+}
+function getarrvars($arr = array()){
+    if(is_array($arr))
+        foreach ($arr as $campo => $valor):/*Aquí asigno todas las variables con su respectivo par en la tabla */
+            $GLOBALS[$campo] = $valor;
+        endforeach;    
 }

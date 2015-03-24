@@ -9,7 +9,9 @@
     parametro = document.getElementById('parametro').value;    
     listar();
     console.log("works!");
-})(jQuery, this, this.document);                            
+})(jQuery, this, this.document);          
+
+
 function listar(){
     funcion = "gestion_"+tablaRegistro;
     loading('div-listado','../');
@@ -25,7 +27,6 @@ function editarStatusRegistro(id,nombre,accion,bu){
     nombreRegistro = nombre; 
     accionStatus = accion;
     beforeupdate = bu;
-
     if(accion === 'activo'){
          $('#tituloStatus').html('Activar Registro');
          $('#modal-body-statusRegistro').html('<p>Are you sure that you want to activate the record <b>'+nombre+'</b></p>');
@@ -50,22 +51,11 @@ function statusRegistro(){
     $('#btnStatusRegistro').attr('disabled','');
     $('#modal-body-statusRegistro').hide();
     loading('responseStatus','../');
-    $.ajax({
-        cache: false,
-        type: 'post',
-        url: 'proceso.php',
-        data:{
-            funcion:'cambiarStatus',
-            accion:accionStatus,
-            id:idRegistro,
-            tabla:tablaRegistro,
-            beforeupdate:beforeupdate
-        },
-        success: function(response) {
+    $.post('proceso.php',{funcion:'cambiarStatus',accion:accionStatus,id:idRegistro,tabla:tablaRegistro,beforeupdate:beforeupdate},function(response) {
             $('#responseStatus').html(response);
             listar(); 
         }
-    }); 
+    ); 
 }  
 function seleccionar_visibles(b){
    $("#table-list > tbody > tr ").filter(':visible').find('.check-lote').prop('checked',b);               

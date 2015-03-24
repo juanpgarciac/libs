@@ -1,4 +1,5 @@
 <?php
+/**/
 if(isset($_FILES['file'])) {         
     if($_FILES['file']['error'] === 0){
         $extension  = '.'.strtolower(pathinfo($_FILES['file']["name"], PATHINFO_EXTENSION));
@@ -10,3 +11,4 @@ if(isset($_FILES['file'])) {
         die('error');        
     }
 }
+/**/

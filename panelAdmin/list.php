@@ -1,5 +1,6 @@
 <?php
     include_once '../_includes.php';
+    checksession('index.php');
     $tabla = decrypt( $_GET['ta']);//table
     $titulo = decrypt( $_GET['ti']);//title
     $parametro = isset($_GET['parametro'])?$_GET['parametro']:'';
@@ -9,7 +10,7 @@
 <head>
     <title>{ - <?php echo printo('MSJ_PAGINA_TITULO') ?> | List of <?php echo $titulo; ?> - }</title>
     <!--========================== INCLUDE HEADER =======================-->                           
-    <?php include 'head.html'; ?>
+    <?php include 'include-head.php'; ?>
     <link rel="stylesheet" href="../res/fancybox/jquery.fancybox.css" type="text/css" media="screen" />
     <link rel="stylesheet" href="//cdn.datatables.net/1.10.5/css/jquery.dataTables.min.css" type="text/css" media="screen"/>
     <style>
@@ -65,7 +66,7 @@
             </div><!-- /.modal-dialog -->
         </div><!-- /.modal -->
     </div>
-    <?php include './include_js.html'; ?>
+    <?php include 'include-js.php'; ?>
     </body>   
         <!-- Add fancyBox -->        
         <script type="text/javascript" src="../res/fancybox/jquery.fancybox.pack.js"></script><!---->            

@@ -1,6 +1,6 @@
 <?php
-
 function encrypt_decrypt($action, $string) {
+    if(empty($string))return null;
     $output = false;
     $encrypt_method = encrypt_method();
     $secret_key = encrypt_key();
@@ -20,7 +20,7 @@ function encrypt($string) {
 function decrypt($string) {
     return encrypt_decrypt('decrypt',$string);
 }
-function alertaBoostrap($mensaje,$tipo="",$container=false){
+function alertaBoostrap($mensaje,$tipo="-success",$container=false){
     /*
     * tipo: -info,-success,-danger, vacio es warning
     */
