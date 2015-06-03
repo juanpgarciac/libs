@@ -12,7 +12,7 @@ function userLanguage(){
 }
 function printo($index){
     global $global_language;
-    $indice = ($index)?mb_strtoupper($index)."_$global_language":"MSJ_NO_INDEX_GIVEN_$global_language";
+    $indice = ($index)?mb_strtoupper($index."_$global_language"):mb_strtoupper("MSJ_NO_INDEX_GIVEN_$global_language");
     if(strpos($indice,'MSJ_')===false)$indice = "MSJ_$indice";
     $arr = userLanguage();
     if($arr)return isset($arr[$indice])&&$arr[$indice]?stripslashes($arr[$indice]):$indice;

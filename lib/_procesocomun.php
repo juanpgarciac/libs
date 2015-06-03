@@ -84,21 +84,23 @@ function prepareInsert_v2($config){
     $avoidcontrol = prepareVar_v2($config,'avoidcontrol');
     $glue = prepareVar_v2($config,'glue',',');    
     $valores = $campos = array();
+    $contentArray = prepareVar_v2($config,'contentArray',$_POST);
     if($tabla){
         $mysqli = new _mysqli;
         $result = mysqli_query($mysqli->conn, "SHOW COLUMNS FROM $tabla;");
         while ($arr = mysqli_fetch_assoc($result)) {            
-            $tmpcampo = isset($_POST[$arr['Field']])&&$_POST[$arr['Field']]?$arr['Field']:null;
-            if($tmpcampo && !in_array($arr['Field'],$arrignorar)){
-                $tmpvalor = isset($_POST[$arr['Field']])&&$_POST[$arr['Field']]?$_POST[$arr['Field']]:$arr['Default'];
+            $tmpcampo = isset($contentArray[$arr['Field']])?$arr['Field']:null; //&&$contentArray[$arr['Field']]
+            if($tmpcampo&&!in_array($tmpcampo,$arrignorar)){
+                $tmpvalor = isset($contentArray[$tmpcampo])&&$contentArray[$tmpcampo]?$contentArray[$tmpcampo]:$arr['Default'];
                 if(strpos($arr['Type'],'int')!== false){
                     $tmpvalor = ($tmpvalor)?$tmpvalor:0;
-                }else if(strpos($arr['Type'],'varchar')!== false || strpos($arr['Type'],'text')!==false){
+                }else if(strpos($arr['Type'],'varchar')!== false || strpos($arr['Type'],'text')!==false || strpos($arr['Type'],'enum')!==false){
                     if (is_array($tmpvalor))//si es un arreglo debo desplegarlo
                         $tmpvalor = implode ($glue, $tmpvalor);   
-                    $tmpvalor = "'".addslashes(trim($tmpvalor))."'";
+                    $tmpvalor = ($tmpvalor)?"'".addslashes(trim($tmpvalor))."'":'NULL';
                 }else if(strpos($arr['Type'],'date')!==false){
-                    $tmpvalor = "'".date('Ymd',strtotime($tmpvalor))."'";
+                    if($tmpvalor !== 'now()')
+                        $tmpvalor = "'".date('Ymd',strtotime($tmpvalor))."'";
                 }else if(strpos($arr['Type'],'decimal')!==false){
                     $tmpvalor = ($tmpvalor)?"'".($tmpvalor)."'":0;
                 }
@@ -257,62 +259,83 @@ function savemultimedia($config){
     $mysqli = new _mysqli;
     
     $idpadre = prepareVar_v2($config, 'idpadre');
-    $idr = prepareVar_v2($config, 'idr');
+    $idr = prepareVar_v2($config, 'idr',$idpadre);
+
     $dirname = prepareVar_v2($config, 'dirname');
     $tabla = prepareVar_v2($config, 'tabla');
     
+    $multimedia_id = prepareVar_v2($config,'multimedia_id');
     $multimedia_archivo = prepareVar_v2($config,'multimedia_archivo');
     $multimedia_borrar = prepareVar_v2($config,'multimedia_borrar');
-    $multimedia_titulo = prepareVar_v2($config,'multimedia_titulo');
-    
-    $columa_id      = prepareVar_v2($config, 'columna_id');
+    $multimedia_titulo = addslashes(trim(prepareVar_v2($config,'multimedia_titulo')));
+    $multimedia_descripcion = addslashes(trim(prepareVar_v2($config,'multimedia_descripcion')));
+
+    $columa_id      = prepareVar_v2($config, 'columna_id','id');
+    $columa_idpadre      = prepareVar_v2($config, 'columna_idpadre');
     $columna_nombre = prepareVar_v2($config, 'columna_nombre');
     $columna_titulo = prepareVar_v2($config, 'columna_titulo');
+    $columna_descripcion = prepareVar_v2($config, 'columna_descripcion');
     $columna_extension = prepareVar_v2($config, 'columna_extension');
+
+    $es_archivo= prepareVar_v2($config, 'es_archivo',true);
+    $forzar_tipo =prepareVar_v2($config, 'forzar_tipo');
 
     $mascara = prepareVar_v2( $config,'mascara',false);
     $limpiar = prepareVar_v2( $config,'limpiar',false);
     
     if($multimedia_borrar){
-        if(file_exists("$dirname/$multimedia_borrar"))
-            unlink("$dirname/$multimedia_borrar");
-        $mysqli->executeSQL("update $tabla set $columna_nombre = '' where $columna_nombre = '$multimedia_borrar' ");        
-    }
-    if($multimedia_archivo){
+        if($es_archivo&&file_exists("$dirname/$multimedia_borrar"))unlink("$dirname/$multimedia_borrar");
+        if(!$mysqli->executeSQL("update $tabla set $columna_nombre = NULL where $columa_id = $multimedia_borrar "))echo mysqli_error($mysqli->conn);       
+    }else{
+        if(!$multimedia_archivo){
+            echo 'no file indicated';
+            return;
+        } 
         $filename = null;
         $extension = null;
-        if(!file_exists("$dirname/$multimedia_archivo")){
-            $tmpfile =file_exists(TMPUPLOADS."/$multimedia_archivo")?TMPUPLOADS."/$multimedia_archivo":null;
-            if($tmpfile){
-                //si existe en los temporales es un insert 
-                $extension = pathinfo($tmpfile,PATHINFO_EXTENSION);
-                $filename = "$columna_nombre-$idr-".sha1(microtime()).".$extension";
-                $filepath  = "$dirname/$filename";
-                if(rename($tmpfile, $filepath)){ 
-                    if($mascara)aplicar_mascara($filepath);
-                    $columna_extension = $columna_extension?",$columna_extension = '$extension' ":null;
-                    if(!$idpadre){//si no existe un idpadre se trata de una tabla mixta (no puedo insertar solo actualizar)
-                        if(!$mysqli->executeSQL("update $tabla set $columna_nombre = '$filename'$columna_extension where $columa_id = $idr ")){
-                            echo mysqli_error($mysqli->conn);    
-                        }                        
-                    }else{//si existe un idpadre se trara de una tabla especifica para multimedias (inserto)
-                        if(!$mysqli->insertar($tabla,"$columa_id,$columna_nombre", "$idpadre,'$filename'")){
-                            echo mysqli_error($mysqli->conn);    
-                        }
-                    }
-                    $multimedia_archivo = $filename;//debo decirle ahora para actulizar el titulo como se llama la imagen
+        if($es_archivo){
+            if(!file_exists("$dirname/$multimedia_archivo")){
+                $tmpfile =file_exists(TMPUPLOADS."/$multimedia_archivo")?TMPUPLOADS."/$multimedia_archivo":null;
+                if($tmpfile){//si existe en los temporales es un insert 
+                    $extension = pathinfo($tmpfile,PATHINFO_EXTENSION);
+                    $filename = "$columna_nombre-$idpadre-".sha1(microtime()).".$extension";
+                    $filepath  = "$dirname/$filename";
+                    if(rename($tmpfile, $filepath)){ 
+                        if($mascara)aplicar_mascara($filepath); 
+                    }else $filename = null;
                 }
-            }
+            }else{
+                $filename = $multimedia_archivo;                 
+            }            
+        }else{            
+            $extension = $forzar_tipo;
+            $filename = $multimedia_archivo; 
         }
-        if($columna_titulo){
-            //actualizar columna titulo
-            if(!$mysqli->executeSQL("update $tabla set $columna_titulo = '$multimedia_titulo' where $columna_nombre = '$multimedia_archivo' ")){
-                echo mysqli_error($mysqli->conn);    
-            }    
+        if($columa_idpadre&&$idpadre){//es una tabla exclusiva de multimedia
+            if($multimedia_id){//es un update
+                $columna_extension = $extension&&$columna_extension?",$columna_extension = '$extension' ":'';
+                $mysqli->executeSQL("update $tabla set $columna_nombre = '$filename'$columna_extension where $columa_id = $multimedia_id ",true,true);       
+            }else{//es un insert
+                if($columna_extension)$multimedia_id =  $mysqli->insertar($tabla,"$columa_idpadre,$columna_nombre,$columna_extension", "$idpadre,'$filename','$extension'");
+                else $multimedia_id = $mysqli->insertar($tabla,"$columa_idpadre,$columna_nombre", "$idpadre,'$filename'");                        
+            }
+        }else{//es una table mixta con multimedia inmerso en un campo
+           $columna_extension = $extension&&$columna_extension?",$columna_extension = '$extension' ":'';
+           $multimedia_id = $mysqli->executeSQL("update $tabla set $columna_nombre = '$filename'$columna_extension where $columa_idpadre = $idpadre ",true,true);                  
         }        
+        if(!$multimedia_id){
+            echo(mysqli_error($mysqli->conn));
+            return;
+        }
+        if($columna_titulo&&$columna_descripcion){
+            if(!$mysqli->executeSQL("update $tabla set $columna_titulo = '$multimedia_titulo',$columna_descripcion = '$multimedia_descripcion' where $columa_id = $multimedia_id "))echo mysqli_error($mysqli->conn);        
+        }else{
+            if($columna_titulo)if(!$mysqli->executeSQL("update $tabla set $columna_titulo = '$multimedia_titulo' where $columa_id = $multimedia_id"))echo mysqli_error($mysqli->conn);    
+            if($columna_descripcion)if(!$mysqli->executeSQL("update $tabla set $columna_descripcion = '$multimedia_descripcion' where $columa_id = $multimedia_id"))echo mysqli_error($mysqli->conn);
+        }           
     }
-    if($limpiar)$mysqli->executeSQL("delete from $tabla where $columna_nombre = '' or $columna_nombre is NULL");
-    
+    //si limpiar entonces 
+    if($limpiar)if(!$mysqli->executeSQL("delete from $tabla where $columna_nombre = '' or $columna_nombre is NULL"))echo mysqli_error($mysqli->conn);        
 }
 function saveimg($mysqli,$dirname,$tablaimg,$idr,$idcolumname,$columname = 'imagen',$postname='img',$postdelimg = 'delimg',$mascara = false){    
         $config = array(
@@ -327,7 +350,7 @@ function saveimg($mysqli,$dirname,$tablaimg,$idr,$idcolumname,$columname = 'imag
           'mascara' => $mascara
     );
     saveimg_v2($config);
-    /**
+    /*
     if(isset($_POST[$postdelimg]) && $_POST[$postdelimg]){
         $img = $_POST[$postdelimg];
         if(file_exists("$dirname/$img"))
@@ -353,14 +376,15 @@ function saveimg($mysqli,$dirname,$tablaimg,$idr,$idcolumname,$columname = 'imag
             }                        
         } 
     }
-    /**/
+    /* */
 }
 function saveimg_v2($config){    
-    $mysqli = prepareVar_v2( $config,'mysqli');
+    //$mysqli = prepareVar_v2( $config,'mysqli');
+    $mysqli = new _mysqli();
     $dirname = prepareVar_v2( $config,'dirname');
     $tablaimg = prepareVar_v2( $config,'tablaimg');
     $idr = prepareVar_v2( $config,'idr');
-    $idcolumname=prepareVar_v2( $config,'idcolumname');
+    $idcolumname=prepareVar_v2( $config,'idcolumname','id');
     $columname =prepareVar_v2( $config,'columname','imagen');
     $postname= prepareVar_v2( $config,'postname','img');
     $postdelimg = prepareVar_v2( $config,'postdelimg','delimg');
@@ -406,7 +430,7 @@ function saveimgs($mysqli,$dirname,$tablaimg,$idr,$idcolumname,$columname = 'ima
     );
     saveimgs_v2($config);
     
-    /**
+    /*
     $returnmsj = isset($_POST['returnmsj'])?$_POST['returnmsj']:false;
     //GUARDAR IMAGENES
     if(isset($_POST[$postdelimgs]) && $_POST[$postdelimgs]){
@@ -491,7 +515,7 @@ function guardarArchivo($mysqli,$id,$tabla,$campo,$carpeta,$name = 'file',$input
     $arrPermitidos = array('image/gif','image/jpeg','image/jpg','image/pjpeg','image/png','image/x-png');        
     //$arrPermitidos = array('application/pdf');        
     $tipo_permitido = in_array($tipo,$arrPermitidos);
-    /**
+    /* *
     ini_set("display_startup_errors", "1");
     ini_set("display_errors", "1");
     error_reporting(E_ALL);
@@ -603,7 +627,51 @@ function fixArrayOfCheckboxes( $checks ) {
     }
     return $newChecks;
 }
-function limpiarcadena($String){
+function limpiarcadena($s){
+    $replace = array(
+        '?'=>'-', '?'=>'-', '?'=>'-', '?'=>'-',
+        '?'=>'A', '?'=>'A', 'À'=>'A', 'Ã'=>'A', 'Á'=>'A', 'Æ'=>'A', 'Â'=>'A', 'Å'=>'A', 'Ä'=>'Ae',
+        'Þ'=>'B',
+        '?'=>'C', '?'=>'C', 'Ç'=>'C',
+        'È'=>'E', '?'=>'E', 'É'=>'E', 'Ë'=>'E', 'Ê'=>'E',
+        '?'=>'G',
+        '?'=>'I', 'Ï'=>'I', 'Î'=>'I', 'Í'=>'I', 'Ì'=>'I',
+        '?'=>'L',
+        'Ñ'=>'N', '?'=>'N',
+        'Ø'=>'O', 'Ó'=>'O', 'Ò'=>'O', 'Ô'=>'O', 'Õ'=>'O', 'Ö'=>'Oe',
+        '?'=>'S', '?'=>'S', '?'=>'S', 'Š'=>'S',
+        '?'=>'T',
+        'Ù'=>'U', 'Û'=>'U', 'Ú'=>'U', 'Ü'=>'Ue',
+        'Ý'=>'Y',
+        '?'=>'Z', 'Ž'=>'Z', '?'=>'Z',
+        'â'=>'a', '?'=>'a', '?'=>'a', 'á'=>'a', '?'=>'a', 'ã'=>'a', '?'=>'a', '?'=>'a', '?'=>'a', 'å'=>'a', 'à'=>'a', '?'=>'a', '?'=>'a', '?'=>'a', '?'=>'a', '?'=>'a', 'ä'=>'ae', 'æ'=>'ae', '?'=>'ae', '?'=>'ae',
+        '?'=>'b', '?'=>'b', '?'=>'b', 'þ'=>'b',
+        '?'=>'c', '?'=>'c', '?'=>'c', '?'=>'c', 'ç'=>'c', '?'=>'c', '?'=>'c', '?'=>'c', '?'=>'c', '?'=>'c', '?'=>'c', '?'=>'ch', '?'=>'ch',
+        '?'=>'d', '?'=>'d', '?'=>'d', '?'=>'d', '?'=>'d', '?'=>'d', '?'=>'d', 'ð'=>'d',
+        '?'=>'e', '?'=>'e', '?'=>'e', '?'=>'e', '?'=>'e', '?'=>'e', '?'=>'e', '?'=>'e', '?'=>'e', '?'=>'e', '?'=>'e', '?'=>'e', '?'=>'e', '?'=>'e', '?'=>'e', 'ê'=>'e', '?'=>'e', 'è'=>'e', 'ë'=>'e', 'é'=>'e',
+        '?'=>'f', 'ƒ'=>'f', '?'=>'f',
+        '?'=>'g', '?'=>'g', '?'=>'g', '?'=>'g', '?'=>'g', '?'=>'g', '?'=>'g', '?'=>'g', '?'=>'g', '?'=>'g', '?'=>'g', '?'=>'g',
+        '?'=>'h', '?'=>'h', '?'=>'h', '?'=>'h', '?'=>'h', '?'=>'h', '?'=>'h', '?'=>'h',
+        'î'=>'i', 'ï'=>'i', 'í'=>'i', 'ì'=>'i', '?'=>'i', '?'=>'i', '?'=>'i', '?'=>'i', '?'=>'i', '?'=>'i', '?'=>'i', '?'=>'i', '?'=>'i', '?'=>'i', '?'=>'i', '?'=>'i', '?'=>'i', '?'=>'i', '?'=>'i', '?'=>'i', '?'=>'i', '?'=>'i', '?'=>'ij', '?'=>'ij',
+        '?'=>'j', '?'=>'j', '?'=>'j', '?'=>'j', '?'=>'ja', '?'=>'ja', '?'=>'je', '?'=>'je', '?'=>'jo', '?'=>'jo', '?'=>'ju', '?'=>'ju',
+        '?'=>'k', '?'=>'k', '?'=>'k', '?'=>'k', '?'=>'k', '?'=>'k', '?'=>'k',
+        '?'=>'l', '?'=>'l', '?'=>'l', '?'=>'l', '?'=>'l', '?'=>'l', '?'=>'l', '?'=>'l', '?'=>'l', '?'=>'l', '?'=>'l', '?'=>'l',
+        '?'=>'m', '?'=>'m', '?'=>'m', '?'=>'m',
+        'ñ'=>'n', '?'=>'n', '?'=>'n', '?'=>'n', '?'=>'n', '?'=>'n', '?'=>'n', '?'=>'n', '?'=>'n', '?'=>'n', '?'=>'n', '?'=>'n', '?'=>'n',
+        '?'=>'o', '?'=>'o', '?'=>'o', 'õ'=>'o', 'ô'=>'o', '?'=>'o', '?'=>'o', '?'=>'o', '?'=>'o', '?'=>'o', 'ø'=>'o', '?'=>'o', '?'=>'o', 'ò'=>'o', '?'=>'o', '?'=>'o', '?'=>'o', 'ó'=>'o', '?'=>'o', 'œ'=>'oe', 'Œ'=>'oe', 'ö'=>'oe',
+        '?'=>'p', '?'=>'p', '?'=>'p', '?'=>'p',
+        '?'=>'q',
+        '?'=>'r', '?'=>'r', '?'=>'r', '?'=>'r', '?'=>'r', '?'=>'r', '?'=>'r', '?'=>'r', '?'=>'r',
+        '?'=>'s', '?'=>'s', '?'=>'s', 'š'=>'s', '?'=>'s', '?'=>'s', '?'=>'s', '?'=>'s', '?'=>'s', '?'=>'sch', '?'=>'sch', '?'=>'sh', '?'=>'sh', 'ß'=>'ss',
+        '?'=>'t', '?'=>'t', '?'=>'t', '?'=>'t', '?'=>'t', '?'=>'t', '?'=>'t', '?'=>'t', '?'=>'t', '?'=>'t', '?'=>'t', '™'=>'tm',
+        '?'=>'u', '?'=>'u', '?'=>'u', '?'=>'u', '?'=>'u', '?'=>'u', '?'=>'u', '?'=>'u', '?'=>'u', '?'=>'u', '?'=>'u', '?'=>'u', '?'=>'u', '?'=>'u', '?'=>'u', '?'=>'u', '?'=>'u', '?'=>'u', '?'=>'u', 'ù'=>'u', 'ú'=>'u', 'û'=>'u', '?'=>'u', '?'=>'u', '?'=>'u', '?'=>'u', '?'=>'u', '?'=>'u', '?'=>'u', 'ü'=>'ue',
+        '?'=>'v', '?'=>'v', '?'=>'v',
+        '?'=>'w', '?'=>'w', '?'=>'w',
+        '?'=>'y', '?'=>'y', 'ý'=>'y', 'ÿ'=>'y', 'Ÿ'=>'y', '?'=>'y',
+        '?'=>'y', 'ž'=>'z', '?'=>'z', '?'=>'z', '?'=>'z', '?'=>'z', '?'=>'z', '?'=>'z', '?'=>'zh', '?'=>'zh'
+    );
+    return strtr($s, $replace);
+    /**
     $String = str_replace(array('á','à','â','ã','ª','ä'),'a',$String);
     $String = str_replace(array('Á','À','Â','Ã','Ä'),'A',$String);
     $String = str_replace(array('Í','Ì','Î','Ï'),'I',$String);
@@ -622,14 +690,14 @@ function limpiarcadena($String){
     $String = str_replace('Ý','Y',$String);
     $String = str_replace('ý','y',$String);
     return $String;
+    /* */
 }
 function endfunction($mysqli,$accion,$idr,$returnpageAdd,$returnpageList,$returnpageImg = ""){
     $mysqli->cerrar();
-    if($accion == 'guardar' || $accion == 'modif'):               
+    if($accion == 'guardar' || $accion == 'modif'):
         $returnpageModif =  $returnpageAdd."?idr=".encrypt($idr);
-    if($returnpageImg)
-        $returnpageImg = '| <a href="'.$returnpageImg."?idr=".$idr.'">Agregar Im&aacute;genes</a>';
-        echo alertaBoostrap('<p><a href="'.$returnpageAdd.'">A&ntilde;adir otro</a> | <a href="'.$returnpageModif.'">Modificar Registro</a> '.$returnpageImg.' | <a href="'.$returnpageList.'">Listar Registros</a></p>','-info',true);
+        if($returnpageImg)$returnpageImg = '| <a href="'.$returnpageImg."?idr=".$idr.'">Agregar Im&aacute;genes</a>';
+        echo alertaBoostrap('<p><a href="'.$returnpageAdd.'">A&ntilde;adir otro</a> | <a href="'.$returnpageModif.'">Modificar Registro</a> '.$returnpageImg.' | <a href="'.$returnpageList.'">Listar Registros</a></p>','-default');
     endif;    
 }
 function encriptar_algo(){    
@@ -717,19 +785,185 @@ function gettablerow($tabla,$idr,$idcolumn = 'id'){
     if($idr&&$tabla){
         $mysqli = new _mysqli;
         $arr = $mysqli->result1($tabla,"where $idcolumn = $idr");
-        getarrvars($arr);
+        return $arr&&getarrvars($arr);
     }
+    return null;
 }
 function gettablerow_condicion($tabla,$condicion=null,$campos="*"){
     if($tabla){
         $mysqli = new _mysqli;
         $arr = $mysqli->result1($tabla,$condicion,$campos);
-        getarrvars($arr);
+        return $arr&&getarrvars($arr);
     }
+    return null;
 }
 function getarrvars($arr = array()){
-    if(is_array($arr))
+    if(is_array($arr)){
         foreach ($arr as $campo => $valor):/*Aquí asigno todas las variables con su respectivo par en la tabla */
             $GLOBALS[$campo] = $valor;
-        endforeach;    
+        endforeach; 
+        return true;
+    }else return null;
 }
+///==========================_funciones=========================================
+function encrypt_decrypt($action, $string) {
+    if(empty($string))return null;
+    $output = false;
+    $encrypt_method = encrypt_method();
+    $secret_key = encrypt_key();
+    $secret_iv = encrypt_key();
+    // hash
+    $key = hash('sha256', $secret_key);// iv - encrypt method AES-256-CBC expects 16 bytes - else you will get a warning
+    $iv = substr(hash('sha256', $secret_iv), 0, 16);
+    if( $action == 'encrypt' || $action == 'e' ) {
+        $output = base64_encode(openssl_encrypt($string, $encrypt_method, $key, 0, $iv));
+    }else 
+        $output = openssl_decrypt(base64_decode($string), $encrypt_method, $key, 0, $iv);
+    return $output;
+}
+function encrypt($string) {return encrypt_decrypt('encrypt',$string);}
+function decrypt($string) { return encrypt_decrypt('decrypt',$string);}
+/*
+* tipo: -info,-success,-danger, vacio es warning
+*/
+function alertaBoostrap($mensaje,$tipo="-success",$container=false){
+
+    $class = '';
+    if($container){
+        include_once 'bootstrap.html';
+        $class = 'class="container" style="margin-top:20px;"';
+    }
+    $alerta = '<div '.$class.'><div class="alert alert'.$tipo.'" style="text-align:center;">'.$mensaje.'</div></div>';
+    return $alerta;
+}
+function numero_a_mes($value,$completo = false){
+    $mes = '';
+   
+    switch ($value) {
+        case 1:
+        case '01':
+            $mes = 'Enero';
+            break;
+        case 2:
+        case '02':
+            $mes = 'Febrero';
+            break;
+        case 3:
+        case '03':
+            $mes = 'Marzo';
+            break;            
+        case 4:
+        case '04':
+            $mes = 'Abril';
+            break;                       
+        case 5:
+        case '05':
+            $mes = 'Mayo';
+            break;                               
+        case 6:
+        case '06':
+            $mes = 'Junio';
+            break;        
+        case 7:
+        case '07':
+            $mes = 'Julio';
+            break;        
+        case 8:
+        case '08':
+            $mes = 'Agosto';
+            break;        
+        case 9:
+        case '09':
+            $mes = 'Septiembre';            
+            break;        
+        case 10:
+        case '10':
+            $mes = 'Octubre';
+            break;        
+        case 11:
+        case '11':
+            $mes = 'Noviembre';
+            break;        
+        case 12:
+        case '12':
+            $mes = 'Diciembre';
+            break;                    
+    }
+    if(!$completo)
+        return substr($mes,0,3);    
+    return $mes;
+}
+function getinput($name,$placeholder="",$type="text",$required='required="required"',$class="form-control",$pattern=""){
+    $placeholder = $placeholder?$placeholder:mb_strtoupper($name);    
+    $value = $GLOBALS[$name];    
+    echo "<input class=\"$class\" id=\"$name\" name=\"$name\" placeholder=\"$placeholder\" $required type=\"$type\" value=\"$value\" pattern=\"$pattern\"  />";
+}
+function addlabel($id,$label,$tags=null){
+    return '<label '.$id.' '.$tags.'>'.$label.'</label>';    
+}
+function addinput($id,$name,$value,$tags=null,$placeholder=null,$type='text',$aftercode=null){
+    
+    //'email','email', $email, 'required="" '.$readonly,'Email address', 'email','<span class="icon-email icon-right"></span>'
+    return '<input id="'.$id.'" name="'.$name.'"  value="'.$value.'"  '.$tags.' placeholder="'.$placeholder.'" type="'.$type.'"  class="form-control ff-rounded" />'.$aftercode;    
+}
+function generateRandomString($length = 10) {
+    $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    $charactersLength = strlen($characters);
+    $randomString = '';
+    for ($i = 0; $i < $length; $i++) {
+        $randomString .= $characters[rand(0, $charactersLength - 1)];
+    }
+    return $randomString;
+}
+function displayMenu($modulo){
+    global $gestion_session;
+    global $nivel_session;
+    $gestion = $gestion_session;
+    if(!is_array($gestion))
+        $gestion = explode (',',$gestion_session);
+    
+    if($nivel_session === 'admin' || ($gestion&&in_array($modulo,$gestion))) 
+        return true;
+    return false;
+}
+function displayModulo($modulos){
+    foreach ($modulos as $modulo) {            
+        if(displayMenu($modulo['gestion'])){
+            echo '<li class="dropdown">
+                    <a href="#" class="dropdown-toggle" data-toggle="dropdown">'.$modulo['titulo'].'<b class="caret"></b></a>
+                    <ul class="dropdown-menu">
+                        <li><a href="'.$modulo['add'].'">Agregar '.$modulo['titulo'].'</a></li>
+                        <li><a href="list.php?ta='.encrypt($modulo['tabla']).'&ti='.encrypt($modulo['titulo']).'">Listar '.$modulo['titulo'].' </a></li>
+                    </ul>
+                  </li>';
+        }
+    }
+}
+function init_time(){
+    $mtime = microtime(); 
+    $mtime = explode(" ",$mtime); 
+    $mtime = $mtime[1] + $mtime[0]; 
+    $starttime = $mtime; 
+    return $starttime;
+}
+function end_time($starttime,$txttolog){
+    $mtime = microtime(); 
+    $mtime = explode(" ",$mtime); 
+    $mtime = $mtime[1] + $mtime[0]; 
+    $endtime = $mtime; 
+    $totaltime = ($endtime - $starttime);
+    $logfile = "execution_time_log";
+    $fh = fopen($logfile, 'a');
+    $ipclient = isset($_SERVER['REMOTE_ADDR'])?$_SERVER['REMOTE_ADDR']:'';
+    $url = isset($_SERVER['HTTP_HOST'])?$_SERVER['HTTP_HOST']:'';
+    $url .= isset($_SERVER['SERVER_PORT'])?":".$_SERVER['SERVER_PORT']:'';
+    $url .= isset($_SERVER['REQUEST_URI'])?$_SERVER['REQUEST_URI']:'';
+    if($fh){
+        fwrite($fh, 
+                date('Y-m-d h:i:s:u').'; EXECUTION TIME: '.$totaltime.'; PROCESS: '.$txttolog.'; IP CLIENT: '.$ipclient.'; URL: '.$url
+                ."\r\n");
+        fclose($fh);        
+    }
+
+}
+//============================================================================//

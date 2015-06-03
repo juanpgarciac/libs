@@ -22,9 +22,6 @@ else die('Error el archivo _lang.php no esta presente');
 if(file_exists(DOCUMENTROOT.SERVERHOST."lib/_mysqli.php"))
     include DOCUMENTROOT.SERVERHOST."lib/_mysqli.php";
 else die('Error el archivo _mysqli.php no esta presente');
-if(file_exists(DOCUMENTROOT.SERVERHOST."lib/_funciones.php"))
-    include DOCUMENTROOT.SERVERHOST."lib/_funciones.php";
-else die('Error el archivo _funciones.php no esta presente');
 if(file_exists(DOCUMENTROOT.SERVERHOST."lib/_procesocomun.php"))
     include DOCUMENTROOT.SERVERHOST."lib/_procesocomun.php";
 else die('Error el archivo _procesocomun.php no esta presente');
@@ -36,3 +33,4 @@ if(DEBUGME){
     ini_set("display_errors", "1");
     error_reporting(E_ALL);
 }
+ob_start( 'ob_gzhandler' );//comprimir site
